@@ -26,18 +26,12 @@ def login():
 
     resp = S.get(f"{BASE_URL}/api/pn-signin", params={
         "code": code, "gopage": "", "mgr": "1"
-    })
+    }, allow_redirects=False)   # ← không follow redirect
 
-    # Lấy XSRF token từ cookie → gắn vào header
-    xsrf = S.cookies.get("xsrf-ctrl") or S.cookies.get("xsrf-sec") or ""
-    S.headers.update({
-        "X-XSRF-TOKEN": xsrf,
-        "RequestVerificationToken": xsrf,
-    })
-
-    print("Login:", resp.status_code)
+    print("Status:", resp.status_code)
+    print("Location:", resp.headers.get("Location", "no redirect"))
     print("Cookies:", list(S.cookies.keys()))
-    return resp.ok
+    return resp
 
 # ── Lấy học kì hiện tại ───────────────────────────────────────────────────────
 def get_current_hocky():
