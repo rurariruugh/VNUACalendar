@@ -69,7 +69,7 @@ def get_current_hocky():
     return data["hoc_ky_theo_ngay_hien_tai"]
 
 def get_tkb(hoc_ky_id):
-    resp = S.post(f"{BASE_URL}/api/sch/w-locdstktbanusertheohocky", json={
+    resp = S.post(f"{BASE_URL}/api/sch/w-locdstkbtuanusertheohocky", json={
         "filter": {
             "hoc_ky": hoc_ky_id,
             "ten_hoc_ky": ""
