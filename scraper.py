@@ -27,10 +27,16 @@ def login():
     resp = S.get(f"{BASE_URL}/api/pn-signin", params={
         "code": code, "gopage": "", "mgr": "1"
     })
+
+    # Lấy XSRF token từ cookie → gắn vào header
+    xsrf = S.cookies.get("xsrf-ctrl") or S.cookies.get("xsrf-sec") or ""
+    S.headers.update({
+        "X-XSRF-TOKEN": xsrf,
+        "RequestVerificationToken": xsrf,
+    })
+
     print("Login:", resp.status_code)
-    print("Login response:", resp.text[:300])
-    print("Cookies:", dict(S.cookies))
-    print("Headers after login:", dict(resp.headers))
+    print("Cookies:", list(S.cookies.keys()))
     return resp.ok
 
 # ── Lấy học kì hiện tại ───────────────────────────────────────────────────────
