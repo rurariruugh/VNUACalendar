@@ -14,8 +14,6 @@ PASSWORD    = os.environ.get("SCHOOL_PASS", "")
 OUTPUT_TKB  = "docs/schedule.ics"
 OUTPUT_EXAM = "docs/exams.ics"
 
-TZ = timezone(timedelta(hours=7))
-
 S = requests.Session()
 S.headers.update({"User-Agent": "Mozilla/5.0", "Referer": BASE_URL})
 
@@ -78,7 +76,6 @@ def get_exams(hoc_ky_id):
             "ordering": [{"name": None, "order_type": None}]
         }
     })
-    print("Exam response:", resp.text[:500])
     return resp.json()["data"]
 
 # ── Build TKB .ics ────────────────────────────────────────────────────────────
@@ -108,12 +105,9 @@ def build_ics(data):
                 continue
 
             ngay     = datetime.fromisoformat(tkb["ngay_hoc"]).date()
-            dt_start = datetime.strptime(
-                f"{ngay} {tiet_map[tiet_bd][0]}", "%Y-%m-%d %H:%M"
-            ).replace(tzinfo=TZ)
-            dt_end   = datetime.strptime(
-                f"{ngay} {tiet_map[tiet_kt][1]}", "%Y-%m-%d %H:%M"
-            ).replace(tzinfo=TZ)
+            # naive datetime — Google dùng X-WR-TIMEZONE
+            dt_start = datetime.strptime(f"{ngay} {tiet_map[tiet_bd][0]}", "%Y-%m-%d %H:%M")
+            dt_end   = datetime.strptime(f"{ngay} {tiet_map[tiet_kt][1]}", "%Y-%m-%d %H:%M")
 
             phong = tkb["ma_phong"].split("-")[0].strip()
 
@@ -151,25 +145,21 @@ def build_exam_ics(data):
         ds = list(ds.values())[0]
 
     for thi in ds:
-        print("Processing:", thi.get("ten_mon"), thi.get("ngay_thi"))
         try:
             ngay_thi  = thi.get("ngay_thi") or thi.get("ngay")
             gio_bd    = thi.get("gio_bat_dau") or thi.get("gio_thi") or "00:00"
-            gio_kt    = thi.get("gio_ket_thuc") or "00:00"
             ten_mon   = thi.get("ten_mon") or thi.get("mon_hoc") or "Thi"
             phong_thi = thi.get("phong_thi") or thi.get("ma_phong") or ""
             phong_str = phong_thi.split("-")[0].strip() if phong_thi else ""
 
-            ngay = datetime.strptime(ngay_thi, "%d/%m/%Y").date()
-            dt_start = datetime.strptime(
-                f"{ngay} {gio_bd[:5]}", "%Y-%m-%d %H:%M"
-            ).replace(tzinfo=TZ)
-            dt_end = dt_start + timedelta(minutes=int(thi.get("so_phut", 60)))
+            ngay     = datetime.strptime(ngay_thi, "%d/%m/%Y").date()
+            # naive datetime — giống TKB
+            dt_start = datetime.strptime(f"{ngay} {gio_bd[:5]}", "%Y-%m-%d %H:%M")
+            dt_end   = dt_start + timedelta(minutes=int(thi.get("so_phut", 60)))
 
             desc_parts = []
-            if thi.get("so_bao_danh"):  desc_parts.append(f"SBD: {thi['so_bao_danh']}")
             if thi.get("hinh_thuc_thi"): desc_parts.append(f"Hình thức: {thi['hinh_thuc_thi']}")
-            if phong_str:               desc_parts.append(phong_str)
+            if phong_str:                desc_parts.append(phong_str)
 
             ev = Event()
             ev.add("dtstamp",     now_utc)
@@ -196,13 +186,11 @@ if __name__ == "__main__":
 
     os.makedirs("docs", exist_ok=True)
 
-    # TKB
     tkb_data = get_tkb(hk_id)
     with open(OUTPUT_TKB, "wb") as f:
         f.write(build_ics(tkb_data))
     print(f"Saved: {OUTPUT_TKB}")
 
-    # Lịch thi
     exam_data = get_exams(hk_id)
     with open(OUTPUT_EXAM, "wb") as f:
         f.write(build_exam_ics(exam_data))
