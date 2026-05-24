@@ -110,8 +110,8 @@ def build_ics(data):
                 continue
 
             ngay     = datetime.fromisoformat(tkb["ngay_hoc"]).date()
-            dt_start = datetime.strptime(f"{ngay} {tiet_map[tiet_bd][0]}", "%Y-%m-%d %H:%M")
-            dt_end   = datetime.strptime(f"{ngay} {tiet_map[tiet_kt][1]}", "%Y-%m-%d %H:%M")
+            dt_start = TZ.localize(datetime.strptime(f"{ngay} {tiet_map[tiet_bd][0]}", "%Y-%m-%d %H:%M"))
+            dt_end   = TZ.localize(datetime.strptime(f"{ngay} {tiet_map[tiet_kt][1]}", "%Y-%m-%d %H:%M"))
 
             ev = Event()
             ev.add("uid",      str(uuid.uuid4()))
