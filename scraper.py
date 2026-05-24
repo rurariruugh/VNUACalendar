@@ -119,8 +119,7 @@ def build_ics(data):
 if __name__ == "__main__":
     assert login(), "Login thất bại"
 
-    hk = get_current_hocky()
-    hk_id = hk.get("hoc_ky") or hk.get("id") or hk.get("nhhk")
+    hk_id = get_current_hocky()
     print(f"Học kì: {hk_id}")
 
     data = get_tkb(hk_id)
