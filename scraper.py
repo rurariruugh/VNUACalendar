@@ -28,6 +28,9 @@ def login():
         "code": code, "gopage": "", "mgr": "1"
     })
     print("Login:", resp.status_code)
+    print("Login response:", resp.text[:300])
+    print("Cookies:", dict(S.cookies))
+    print("Headers after login:", dict(resp.headers))
     return resp.ok
 
 # ── Lấy học kì hiện tại ───────────────────────────────────────────────────────
