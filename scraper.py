@@ -43,10 +43,11 @@ def login():
     access_token = user_data["access_token"]
 
     S.headers["Authorization"] = f"Bearer {access_token}"
-    S.headers.update({
-        "Accept": "application/json, text/plain, */*",
-        "Idpc": "0",
-    })
+   S.headers.update({
+    "Accept": "application/json, text/plain, */*",
+    "Idpc": "0",
+    "X-Requested-With": "XMLHttpRequest",
+})
     print("Login OK | Token:", access_token[:30], "...")
     return True
 
