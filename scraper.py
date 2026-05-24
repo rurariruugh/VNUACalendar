@@ -159,13 +159,11 @@ def build_exam_ics(data):
             phong_thi = thi.get("phong_thi") or thi.get("ma_phong") or ""
             phong_str = phong_thi.split("-")[0].strip() if phong_thi else ""
 
-            ngay     = datetime.fromisoformat(ngay_thi).date()
+            ngay = datetime.strptime(ngay_thi, "%d/%m/%Y").date()
             dt_start = datetime.strptime(
                 f"{ngay} {gio_bd[:5]}", "%Y-%m-%d %H:%M"
             ).replace(tzinfo=TZ)
-            dt_end   = datetime.strptime(
-                f"{ngay} {gio_kt[:5]}", "%Y-%m-%d %H:%M"
-            ).replace(tzinfo=TZ) if gio_kt != "00:00" else dt_start + timedelta(hours=1)
+            dt_end = dt_start + timedelta(minutes=int(thi.get("so_phut", 60)))
 
             desc_parts = []
             if thi.get("so_bao_danh"):  desc_parts.append(f"SBD: {thi['so_bao_danh']}")
