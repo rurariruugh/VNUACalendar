@@ -18,6 +18,8 @@ S.headers.update({"User-Agent": "Mozilla/5.0", "Referer": BASE_URL})
 
 # ── Login ─────────────────────────────────────────────────────────────────────
 def login():
+    from urllib.parse import parse_qs
+
     code = base64.b64encode(json.dumps({
         "username": USERNAME,
         "password": PASSWORD,
@@ -26,12 +28,23 @@ def login():
 
     resp = S.get(f"{BASE_URL}/api/pn-signin", params={
         "code": code, "gopage": "", "mgr": "1"
-    }, allow_redirects=False)   # ← không follow redirect
+    }, allow_redirects=False)
 
-    print("Status:", resp.status_code)
-    print("Location:", resp.headers.get("Location", "no redirect"))
-    print("Cookies:", list(S.cookies.keys()))
-    return resp
+    # Lấy CurrUser từ fragment của redirect URL
+    location = resp.headers.get("Location", "")
+    fragment = location.split("#")[-1]          # "/home?CurrUser=eyJ..."
+    query    = fragment.split("?")[-1]          # "CurrUser=eyJ..."
+    params   = parse_qs(query)
+    curr_b64 = params.get("CurrUser", [""])[0]
+
+    # Thêm padding nếu thiếu
+    curr_b64 += "=" * (-len(curr_b64) % 4)
+    user_data    = json.loads(base64.b64decode(curr_b64))
+    access_token = user_data["access_token"]
+
+    S.headers["Authorization"] = f"Bearer {access_token}"
+    print("Login OK | Token:", access_token[:30], "...")
+    return True
 
 # ── Lấy học kì hiện tại ───────────────────────────────────────────────────────
 def get_current_hocky():
