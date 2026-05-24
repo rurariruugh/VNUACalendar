@@ -19,8 +19,8 @@ S.headers.update({"User-Agent": "Mozilla/5.0", "Referer": BASE_URL})
 # ── Login ─────────────────────────────────────────────────────────────────────
 def login():
     code = base64.b64encode(json.dumps({
-        "username": 691086,
-        "password": Vithephat231,
+        "username": USERNAME,
+        "password": PASSWORD,
         "uri": f"{BASE_URL}/#/home"
     }).encode()).decode()
 
