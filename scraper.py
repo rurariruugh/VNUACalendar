@@ -64,9 +64,10 @@ def get_current_hocky():
     return data["hoc_ky_theo_ngay_hien_tai"]
 
 def get_tkb(hoc_ky_id):
-    resp = S.post(f"{BASE_URL}/api/sch/w-locdstktbanusertheohocky", json={
-        "hoc_ky": hoc_ky_id
-    })
+    resp = S.post(
+        f"{BASE_URL}/api/sch/w-locdstktbanusertheohocky",
+        data={"hoc_ky": hoc_ky_id}   # form-encoded thay vì json={}
+    )
     print("TKB response:", resp.text[:200])
     return resp.json()["data"]
 
