@@ -1,1 +1,3 @@
 # VNUACalendar
+
+GoogleCalendar sync
