@@ -1,3 +1,3 @@
 # VNUACalendar
 
-GoogleCalendar sync
+GoogleCalendar sync with VNUA system
