@@ -33,6 +33,7 @@ def login():
 # ── Lấy học kì hiện tại ───────────────────────────────────────────────────────
 def get_current_hocky():
     resp = S.get(f"{BASE_URL}/api/sch/w-locdshockytkbuser")
+    print("HocKy response:", resp.text[:500])   # ← thêm dòng này
     ds   = resp.json()["data"]["ds_hoc_ky"]
     for hk in ds:
         if hk.get("hientai") or hk.get("is_hien_tai"):
