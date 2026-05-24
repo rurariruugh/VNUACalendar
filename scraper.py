@@ -5,16 +5,15 @@ pip install requests icalendar
 
 import os, json, base64, uuid
 import requests
-import pytz
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from icalendar import Calendar, Event
-
-TZ = pytz.timezone("Asia/Ho_Chi_Minh")
 
 BASE_URL = "https://daotao.vnua.edu.vn"
 USERNAME = os.environ.get("SCHOOL_USER", "")
 PASSWORD = os.environ.get("SCHOOL_PASS", "")
 OUTPUT   = "docs/schedule.ics"
+
+TZ = timezone(timedelta(hours=7))  # UTC+7, không cần VTIMEZONE
 
 S = requests.Session()
 S.headers.update({"User-Agent": "Mozilla/5.0", "Referer": BASE_URL})
@@ -33,44 +32,32 @@ def login():
         "code": code, "gopage": "", "mgr": "1"
     }, allow_redirects=False)
 
-    # Lấy CurrUser từ fragment của redirect URL
     location = resp.headers.get("Location", "")
-    fragment = location.split("#")[-1]          # "/home?CurrUser=eyJ..."
-    query    = fragment.split("?")[-1]          # "CurrUser=eyJ..."
+    fragment = location.split("#")[-1]
+    query    = fragment.split("?")[-1]
     params   = parse_qs(query)
     curr_b64 = params.get("CurrUser", [""])[0]
 
-    # Thêm padding nếu thiếu
     curr_b64 += "=" * (-len(curr_b64) % 4)
     user_data    = json.loads(base64.b64decode(curr_b64))
     access_token = user_data["access_token"]
 
-    S.headers["Authorization"] = f"Bearer {access_token}"
     S.headers.update({
-    "Accept": "application/json, text/plain, */*",
-    "Idpc": "0",
-    "X-Requested-With": "XMLHttpRequest",
-})
+        "Authorization":   f"Bearer {access_token}",
+        "Accept":          "application/json, text/plain, */*",
+        "Idpc":            "0",
+        "X-Requested-With": "XMLHttpRequest",
+    })
     print("Login OK | Token:", access_token[:30], "...")
     return True
 
 # ── Lấy học kì hiện tại ───────────────────────────────────────────────────────
 def get_current_hocky():
     resp = S.post(f"{BASE_URL}/api/sch/w-locdshockytkbuser", json={})
-    print("HocKy response:", resp.text[:500])
-    ds   = resp.json()["data"]["ds_hoc_ky"]
-    for hk in ds:
-        if hk.get("hientai") or hk.get("is_hien_tai"):
-            return hk
-    return ds[0]  # fallback
-
-# ── Lấy TKB toàn học kì ───────────────────────────────────────────────────────
-def get_current_hocky():
-    resp = S.post(f"{BASE_URL}/api/sch/w-locdshockytkbuser", json={})
     data = resp.json()["data"]
-    # Dùng field hoc_ky_theo_ngay_hien_tai thay vì guess
     return data["hoc_ky_theo_ngay_hien_tai"]
 
+# ── Lấy TKB toàn học kì ───────────────────────────────────────────────────────
 def get_tkb(hoc_ky_id):
     resp = S.post(f"{BASE_URL}/api/sch/w-locdstkbtuanusertheohocky", json={
         "filter": {
@@ -82,7 +69,6 @@ def get_tkb(hoc_ky_id):
             "ordering": [{"name": None, "order_type": None}]
         }
     })
-    print("TKB response:", resp.text[:200])
     return resp.json()["data"]
 
 # ── Build .ics ────────────────────────────────────────────────────────────────
@@ -96,7 +82,9 @@ def build_ics(data):
     cal.add("X-WR-CALNAME", "Lịch học VNUA")
     cal.add("X-WR-TIMEZONE", "Asia/Ho_Chi_Minh")
 
-    count = 0
+    now_utc = datetime.now(tz=timezone.utc)
+    count   = 0
+
     for tuan in data["ds_tuan_tkb"]:
         for tkb in tuan["ds_thoi_khoa_bieu"]:
             if tkb.get("is_nghi_day"):
@@ -110,15 +98,20 @@ def build_ics(data):
                 continue
 
             ngay     = datetime.fromisoformat(tkb["ngay_hoc"]).date()
-            dt_start = TZ.localize(datetime.strptime(f"{ngay} {tiet_map[tiet_bd][0]}", "%Y-%m-%d %H:%M"))
-            dt_end   = TZ.localize(datetime.strptime(f"{ngay} {tiet_map[tiet_kt][1]}", "%Y-%m-%d %H:%M"))
+            dt_start = datetime.strptime(
+                f"{ngay} {tiet_map[tiet_bd][0]}", "%Y-%m-%d %H:%M"
+            ).replace(tzinfo=TZ)
+            dt_end   = datetime.strptime(
+                f"{ngay} {tiet_map[tiet_kt][1]}", "%Y-%m-%d %H:%M"
+            ).replace(tzinfo=TZ)
 
             ev = Event()
-            ev.add("uid",      str(uuid.uuid4()))
-            ev.add("summary",  tkb["ten_mon"])
-            ev.add("dtstart",  dt_start)
-            ev.add("dtend",    dt_end)
-            ev.add("location", tkb["ma_phong"].split("-")[0].strip())
+            ev.add("dtstamp",     now_utc)
+            ev.add("uid",         str(uuid.uuid4()))
+            ev.add("summary",     tkb["ten_mon"])
+            ev.add("dtstart",     dt_start)
+            ev.add("dtend",       dt_end)
+            ev.add("location",    tkb["ma_phong"].split("-")[0].strip())
             ev.add("description", (
                 f"GV: {tkb['ten_giang_vien']}\n"
                 f"Phòng: {tkb['ma_phong']}\n"
